@@ -1,0 +1,3 @@
+PyNaCl
+discord
+yt-dlp

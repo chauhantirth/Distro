@@ -36,7 +36,6 @@ def checkArgs(query):
 		url_type = 'yt_single_track'
 	
 	else:
-		print("Searching Track")
 		searchString = parse.urlencode({'search_query': query})
 		htmContent = request.urlopen(
 			'http://www.youtube.com/results?' + searchString)

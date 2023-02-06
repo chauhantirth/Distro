@@ -160,7 +160,9 @@ def common_embed(message):
 def play_music(ctx):
 
 	id = int(ctx.guild.id)
+	bot.ffmpeg_Process[id] = None
 	rm_track = utils.deleteTrack(str(id))
+
 
 	if bot.queue_status[id] == []:
 		bot.is_paused[id] = bot.is_playing[id] = False
@@ -268,7 +270,7 @@ async def play(ctx, *args):
 		track = utils.getTrack(track['id'])
 		track['added_by'] = ctx.author
 
-		if len(bot.queue_status[id]) >= 5:
+		if len(bot.queue_status[id]) >= 50:
 			e_msg = "**Queue is full, try after the current song.**"
 			e_msg = common_embed(e_msg)
 			bot.last_messsage[id] = await ctx.reply(embed=e_msg, mention_author=False)

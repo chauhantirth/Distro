@@ -9,12 +9,20 @@ def checkArgs(query):
 	track = {}
 
 	if query == '':
-		track['error'] = 'empty_string'
+		track['error'] = 'empty_query'
 		return track
 	
 	elif 'https://open.spotify.com' in query:
 		track['error'] = 'url_unsupported'
 		return track
+
+	elif 'https://' in query and 'https://www.youtu' not in query:
+		track['error'] = 'url_unsupported'
+		return track
+
+	elif 'http://' in query and 'http://www.youtu' not in query:
+		track['error'] = 'url_unsupported'
+		return track		
 
 	elif '&list' in query:
 		urlSplit = query.split("&list")
@@ -34,7 +42,7 @@ def checkArgs(query):
 		track_id = urlSplit[1]
 		url = "https://www.youtube.com/watch?v="+urlSplit[1]
 		url_type = 'yt_single_track'
-	
+
 	else:
 		searchString = parse.urlencode({'search_query': query})
 		htmContent = request.urlopen(

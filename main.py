@@ -267,7 +267,7 @@ async def run_player(play_music: typing.Callable, *args, **kwargs) -> typing.Any
 	description="Describes the usage of the Music bot."
 )
 async def help(ctx: discord.Interaction):
-
+	await ctx.response.defer(ephemeral=True)
 	helpDescription = "\
 	**`/play`:** Enter the song name or URL to play.\n \
 	**`/fplay`:** Force play the specified song (it clears the previous queue).\n\
@@ -282,7 +282,7 @@ async def help(ctx: discord.Interaction):
 			description=helpDescription,
 			colour=bot.embedColor,
 		) 
-	await ctx.response.send_message(embed=helpEmbed, ephemeral=True)
+	await ctx.followup.send(embed=helpEmbed)
 
 
 @bot.tree.command(
@@ -291,26 +291,26 @@ async def help(ctx: discord.Interaction):
 )
 @app_commands.describe(query="Enter Song Name/URL")
 async def play(ctx: discord.Interaction, query: str):
-
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 	track = utils.checkArgs(query)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif track['error'] != '':
 		e_msg = f"**{track['error']}, Please type /help for usage.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -322,14 +322,14 @@ async def play(ctx: discord.Interaction, query: str):
 		if len(bot.queue_status[id]) >= 50:
 			e_msg = "**Queue is full, try after the current song.**"
 			e_msg = common_embed(e_msg)
-			bot.last_messsage[id] = await ctx.response.send_message(embed=e_msg)
+			bot.last_messsage[id] = await ctx.followup.send(embed=e_msg)
 			return
 		
 		else:
 			if bot.queue_status[id] == [] and bot.is_playing[id] == False and bot.is_paused[id] == False:
 				e_msg = "**Queue Initiated and song added to queue.**"
 				e_msg = common_embed(e_msg)
-				bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+				bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 
 				track = utils.getTrack(track['id'])
 				track['added_by'] = ctx.user
@@ -344,7 +344,7 @@ async def play(ctx: discord.Interaction, query: str):
 
 				bot.queue_status[id].append(track)
 				e_msg = track_add_embed(ctx, track)
-				bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+				bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 				pass
 
 @bot.tree.command(
@@ -353,26 +353,26 @@ async def play(ctx: discord.Interaction, query: str):
 )
 @app_commands.describe(query="Enter Song Name/URL")
 async def fplay(ctx: discord.Interaction, query: str):
-
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 	track = utils.checkArgs(query)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif track['error'] != '':
 		e_msg = f"**{track['error']}, Please type /help for usage.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -384,7 +384,7 @@ async def fplay(ctx: discord.Interaction, query: str):
 		if bot.queue_status[id] == [] and bot.is_playing[id] == False and bot.is_paused[id] == False:
 			e_msg = "**Queue Initiated and song added to queue.**"
 			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 
 			track = utils.getTrack(track['id'])
 			track['added_by'] = ctx.user
@@ -397,7 +397,7 @@ async def fplay(ctx: discord.Interaction, query: str):
 
 			e_msg = "**New Queue Initiated and song added to queue.**"
 			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 
 			track = utils.getTrack(track['id'])
 			track['added_by'] = ctx.user
@@ -409,7 +409,7 @@ async def fplay(ctx: discord.Interaction, query: str):
 
 			e_msg = "**New Queue Initiated and song added to queue.**"
 			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 
 			track = utils.getTrack(track['id'])
 			track['added_by'] = ctx.user
@@ -428,25 +428,25 @@ async def fplay(ctx: discord.Interaction, query: str):
 	description="Skip to the next song in the queue."
 )
 async def skip(ctx: discord.Interaction):
-
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 	
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
 		e_msg = "**You need to play some music first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -454,12 +454,12 @@ async def skip(ctx: discord.Interaction):
 
 	if bot.is_playing[id] == True and bot.ffmpeg_Process[id] != None:
 		e_msg = skip_embed(ctx)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)		
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)		
 		utils.kill_process(bot.ffmpeg_Process[id])
 
 	elif bot.is_paused[id] == True and bot.ffmpeg_Process[id] != None:
 		e_msg = skip_embed(ctx)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)		
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)		
 		bot.is_paused[id] = False
 		bot.is_playing[id] = True
 		bot.vc[id].resume()
@@ -473,24 +473,25 @@ async def skip(ctx: discord.Interaction):
 	description="Pause the playback of the song."
 )
 async def pause(ctx: discord.Interaction):
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
 		e_msg = "**You need to play some music first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -499,7 +500,7 @@ async def pause(ctx: discord.Interaction):
 	if bot.is_paused[id] == True:
 		e_msg = "**Music is already paused.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 		return
 
 	elif bot.is_playing[id] == True:
@@ -508,7 +509,7 @@ async def pause(ctx: discord.Interaction):
 		bot.vc[id].pause()
 		trackData = bot.current_song[id]
 		e_msg = pause_embed(ctx, trackData)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 	
 	else:
 		pass
@@ -518,24 +519,25 @@ async def pause(ctx: discord.Interaction):
 	description="Resume the playback if its paused."
 )
 async def resume(ctx: discord.Interaction):
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
 		e_msg = "**You need to play some music first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -544,7 +546,7 @@ async def resume(ctx: discord.Interaction):
 	if bot.is_playing[id] == True:
 		e_msg = "**Music is already being played.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 		return
 
 	elif bot.is_paused[id] == True:
@@ -553,7 +555,7 @@ async def resume(ctx: discord.Interaction):
 		bot.vc[id].resume()
 		trackData = bot.current_song[id]
 		e_msg = resume_embed(ctx, trackData)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 	
 	else:
 		pass
@@ -563,24 +565,25 @@ async def resume(ctx: discord.Interaction):
 	description="Clears the queue and disconnects from Voice Channel."
 )
 async def leave(ctx: discord.Interaction):
+	await ctx.response.defer()
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
 		e_msg = "**You need to join VC first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
 		e_msg = "**Please join the VC of the Bot.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
 		e_msg = "**You need to play some music first.**"
 		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
 		return
 
 	else:
@@ -588,7 +591,7 @@ async def leave(ctx: discord.Interaction):
 
 	if bot.is_paused[id] == True and bot.ffmpeg_Process[id] != None:
 		e_msg = leave_embed(ctx)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
 
 		bot.queue_status[id] = []
 		bot.vc[id].resume()
@@ -596,7 +599,7 @@ async def leave(ctx: discord.Interaction):
 
 	elif bot.is_playing[id] == True and bot.ffmpeg_Process[id] != None:
 		e_msg = leave_embed(ctx)
-		bot.last_message[id] = await ctx.response.send_message(embed=e_msg)	
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg)	
 
 		bot.queue_status[id] = []
 		utils.kill_process(bot.ffmpeg_Process[id])

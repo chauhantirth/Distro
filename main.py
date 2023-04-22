@@ -103,19 +103,24 @@ async def on_voice_state_update(member, before, after):
 	else:
 		pass
 
+def getDuration(seconds):
+	seconds = int(seconds)
+	m, s = divmod(seconds, 60)
+	if seconds >= 3600:
+		h, m = divmod(m, 60)
+		track_length = f"{h:d}:{m:02d}:{s:02d}"
+		return track_length
+	else:
+		track_length = f"{m:02d}:{s:02d}"
+		return track_length
+
 def now_playing_embed(trackData):
 	track_title = trackData['title']
 	track_url = trackData['url']
 	thumbnail = trackData['thumbnail']
 	seconds = trackData['duration']
 	author = trackData['added_by']
-
-	m, s = divmod(seconds, 60)
-	if seconds >= 3600:
-		h, m = divmod(m, 60)
-		track_length = f"{h:d}:{m:02d}:{s:02d}"
-	else:
-		track_length = f"{m:02d}:{s:02d}"
+	track_length = getDuration(seconds)
 
 	embed = discord.Embed(
 		title="Currently Playing",
@@ -131,13 +136,7 @@ def track_add_embed(ctx, trackData):
 	track_title = trackData['title']
 	track_url = trackData['url']
 	seconds = trackData['duration']
-
-	m, s = divmod(seconds, 60)
-	if seconds >= 3600:
-		h, m = divmod(m, 60)
-		track_length = f"{h:d}:{m:02d}:{s:02d}"
-	else:
-		track_length = f"{m:02d}:{s:02d}"
+	track_length = getDuration(seconds)
 
 	embed = discord.Embed(
 		title="Song Added To Queue!",
@@ -167,13 +166,7 @@ def resume_embed(ctx, trackData):
 	track_url = trackData['url']
 	thumbnail = trackData['thumbnail']
 	seconds = trackData['duration']
-
-	m, s = divmod(seconds, 60)
-	if seconds >= 3600:
-		h, m = divmod(m, 60)
-		track_length = f"{h:d}:{m:02d}:{s:02d}"
-	else:
-		track_length = f"{m:02d}:{s:02d}"
+	track_length = getDuration(seconds)
 
 	embed = discord.Embed(
 		title="Song Resumed!",
@@ -206,6 +199,23 @@ def common_embed(message):
 	embed = discord.Embed(
 			description=message,
 			colour=bot.embedColor
+	)
+	return embed
+
+def queue_embed(queueList):
+
+	# tabSpace = "\u200b"*8
+	content = "`Queue`\u1CBC\u1CBC\u1CBC\u1CBC`Duration`\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC`Title`\n\n"
+	i = 1
+	for song in queueList:
+		x = "\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC".join([f"`#{i}`", f"`{getDuration(song['duration'])}`", f"{song['title']}", '\n'])
+		content = content + x
+		i = i+1
+
+	embed = discord.Embed(
+		title="Next songs in the Queue:",
+		description=content,
+		colour=bot.embedColor, 
 	)
 	return embed
 
@@ -606,5 +616,45 @@ async def leave(ctx: discord.Interaction):
 
 	else:
 		pass
+
+@bot.tree.command(
+	name='queue',
+	description="Display all the songs in the queue."
+)
+async def resume(ctx: discord.Interaction):
+	await ctx.response.defer()
+	id = int(ctx.guild.id)
+
+	if ctx.user.voice is None:
+		e_msg = "**You need to join VC first.**"
+		e_msg = common_embed(e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		return
+
+	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
+		e_msg = "**Please join the VC of the Bot.**"
+		e_msg = common_embed(e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		return
+
+	elif bot.vc[id] == None:
+		e_msg = "**You need to play some music first.**"
+		e_msg = common_embed(e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		return
+
+	else:
+		pass
+	
+	if bot.queue_status[id] == []:
+		e_msg = "**Queue is empty, add songs by /play command.**"
+		e_msg = common_embed(e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		return
+	
+	elif bot.queue_status[id] != []:
+		e_msg = queue_embed(bot.queue_status[id])
+		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		return
 
 bot.run(config.BOT_TOKEN)

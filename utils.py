@@ -16,11 +16,11 @@ def checkArgs(query):
 		track['error'] = 'url_unsupported'
 		return track
 
-	elif 'https://' in query and 'https://www.youtu' not in query:
+	elif 'https://' in query and 'https://youtu' not in query and 'https://www.youtu' not in query:
 		track['error'] = 'url_unsupported'
 		return track
 
-	elif 'http://' in query and 'http://www.youtu' not in query:
+	elif 'http://' in query and 'http://youtu' not in query and 'http://www.youtu' not in query:
 		track['error'] = 'url_unsupported'
 		return track		
 

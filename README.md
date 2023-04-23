@@ -25,6 +25,7 @@ Run the `main.py` file to start the bot.
 
 - `/play {Track name/URL}`**:** Plays the Track / Add to Queue.
 - `/fplay {Track name/URL}`**:** Force Plays the Track
+- `/queue`**:** Displays all the songs in the queue.
 - `/skip`**:** Skips the current playing track.
 - `/pause`**:** Pause the playback of the track.
 - `/resume`**:** Resumes the paused playback.

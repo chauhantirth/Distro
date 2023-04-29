@@ -281,6 +281,7 @@ async def help(ctx: discord.Interaction):
 	helpDescription = "\
 	**`/play`:** Enter the song name or URL to play.\n \
 	**`/fplay`:** Force play the specified song (it clears the previous queue).\n\
+	**`/queue`:** Displays all the songs in the queue.\n\
 	**`/skip`:** Skip to the next song in the queue.\n\
 	**`/pause`:** Pause the playback of the song.\n\
 	**`/resume`:** Resume the playback if its paused.\n\

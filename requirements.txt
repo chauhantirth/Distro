@@ -1,3 +1,5 @@
 PyNaCl
 discord
 yt-dlp
+librespot
+pyyaml

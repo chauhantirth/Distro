@@ -1,4 +1,5 @@
 import os
+import yaml
 import typing
 import discord
 import functools
@@ -7,9 +8,15 @@ from discord.ext import commands
 from asyncio import run_coroutine_threadsafe
 
 import utils
-import config
+from embeds import *
 
-bot = commands.Bot(command_prefix="/", intents=discord.Intents.all())
+config = utils.Config()
+if config.spotify != True:
+	print("Spotify Support Excluded.")
+else:
+	config.setupSpotifyClient()
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 bot.remove_command('help')
 
 bot.vc = {}
@@ -103,135 +110,18 @@ async def on_voice_state_update(member, before, after):
 	else:
 		pass
 
-def getDuration(seconds):
-	seconds = int(seconds)
-	m, s = divmod(seconds, 60)
-	if seconds >= 3600:
-		h, m = divmod(m, 60)
-		track_length = f"{h:d}:{m:02d}:{s:02d}"
-		return track_length
-	else:
-		track_length = f"{m:02d}:{s:02d}"
-		return track_length
-
-def now_playing_embed(trackData):
-	track_title = trackData['title']
-	track_url = trackData['url']
-	thumbnail = trackData['thumbnail']
-	seconds = trackData['duration']
-	author = trackData['added_by']
-	track_length = getDuration(seconds)
-
-	embed = discord.Embed(
-		title="Currently Playing",
-		description=f'[{track_title}]({track_url})',
-		colour=bot.embedColor, 
-	)
-	embed.set_thumbnail(url=thumbnail)
-	embed.add_field(name=f"**Song Requested By: {str(author)}**", value="", inline=True)
-	embed.set_footer(text=f"Track Duration: {track_length}")
-	return embed
-
-def track_add_embed(ctx, trackData):
-	track_title = trackData['title']
-	track_url = trackData['url']
-	seconds = trackData['duration']
-	track_length = getDuration(seconds)
-
-	embed = discord.Embed(
-		title="Song Added To Queue!",
-		description=f'[{track_title}]({track_url})',
-		colour=bot.embedColor, 
-	)
-	embed.add_field(name=f"**Song Added By: **{ctx.user}", value="", inline=False)
-	embed.set_footer(text=f"Track Duration: {track_length}")
-	return embed
-
-def pause_embed(ctx, trackData):
-	track_title = trackData['title']
-	track_url = trackData['url']
-	thumbnail = trackData['thumbnail']
-
-	embed = discord.Embed(
-		title="Song Paused!",
-		description=f'[{track_title}]({track_url})',
-		colour=bot.embedColor, 
-	)
-	embed.add_field(name=f"**Paused By: ** {ctx.user}", value="", inline=True)
-	embed.set_thumbnail(url=thumbnail)
-	return embed
-
-def resume_embed(ctx, trackData):
-	track_title = trackData['title']
-	track_url = trackData['url']
-	thumbnail = trackData['thumbnail']
-	seconds = trackData['duration']
-	track_length = getDuration(seconds)
-
-	embed = discord.Embed(
-		title="Song Resumed!",
-		description=f'[{track_title}]({track_url})',
-		colour=bot.embedColor, 
-	)
-	embed.add_field(name=f"**Resumed By: **{ctx.user}", value="", inline=False)
-	embed.set_footer(text=f"Duration: {track_length}")
-	embed.set_thumbnail(url=thumbnail)
-	return embed
-
-def skip_embed(ctx):
-
-	embed = discord.Embed(
-			description=f"**Track skipped by: **{ctx.user.mention}",
-			colour=bot.embedColor
-	)
-	return embed
-
-def leave_embed(ctx):
-
-	embed = discord.Embed(
-		description=f"**Music stopped by:** {ctx.user.mention}",
-		colour=bot.embedColor
-	)
-	return embed
-
-def common_embed(message):
-
-	embed = discord.Embed(
-			description=message,
-			colour=bot.embedColor
-	)
-	return embed
-
-def queue_embed(queueList):
-
-	# tabSpace = "\u200b"*8
-	content = "`Queue`\u1CBC\u1CBC\u1CBC\u1CBC`Duration`\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC`Title`\n\n"
-	i = 1
-	for song in queueList:
-		x = "\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC\u1CBC".join([f"`#{i}`", f"`{getDuration(song['duration'])}`", f"{song['title']}", '\n'])
-		content = content + x
-		i = i+1
-
-	embed = discord.Embed(
-		title="Next songs in the Queue:",
-		description=content,
-		colour=bot.embedColor, 
-	)
-	return embed
 
 def play_music(ctx):
 
 	id = int(ctx.guild.id)
 	bot.ffmpeg_Process[id] = None
-	rm_track = utils.deleteTrack(str(id))
+	rm_track = utils.deleteTrack(str(id), config.DOWNLOAD_DIR)
 
 
 	if bot.queue_status[id] == []:
 		bot.is_paused[id] = bot.is_playing[id] = False
 		
-		msg = "**Queue Cleared, Disconnected from VC**"
-		e_msg = common_embed(msg)
-		coro = ctx.channel.send(embed=e_msg)	
+		coro = ctx.channel.send(embed=common_embed("**Queue Cleared, Disconnected from VC**"))	
 		fut = run_coroutine_threadsafe(coro, bot.loop)
 		try:
 			fut.result()
@@ -252,18 +142,28 @@ def play_music(ctx):
 	if bot.queue_status[id] != []:
 
 		bot.current_song[id] = bot.queue_status[id].pop(0)
-		e_msg = now_playing_embed(bot.current_song[id])
-		coro = ctx.channel.send(embed=e_msg)
+		coro = ctx.channel.send(embed=now_playing_embed(bot.current_song[id]))
 		fut = run_coroutine_threadsafe(coro, bot.loop)	
 		try:
 			fut.result()
 		except:
 			pass
 
-		utils.downloadTrack(bot.current_song[id]['id'], str(id))
-		source = discord.FFmpegPCMAudio("rds/"+bot.current_song[id]['id']+"."+str(id)+".webm")
-		bot.vc[id].play(source, after=lambda e: play_music(ctx))
-		bot.ffmpeg_Process[id] = source._process.pid
+		dl_loc = utils.downloadTrack(bot.current_song[id], str(id), config.DOWNLOAD_DIR)
+		if dl_loc is None:
+			coro = ctx.channel.send(embed=common_embed("**Skipped the track due to download error.**"))
+			fut = run_coroutine_threadsafe(coro, bot.loop)	
+			try:
+				fut.result()
+			except:
+				pass
+			
+			print(f"Download Error: {bot.current_song[id]['track_id']}, platform: {bot.current_song[id]['track_platform']}")
+			play_music(ctx)
+		else:
+			source = discord.FFmpegPCMAudio(str(dl_loc))
+			bot.vc[id].play(source, after=lambda e: play_music(ctx))
+			bot.ffmpeg_Process[id] = source._process.pid
 
 
 
@@ -304,24 +204,24 @@ async def help(ctx: discord.Interaction):
 async def play(ctx: discord.Interaction, query: str):
 	await ctx.response.defer()
 	id = int(ctx.guild.id)
-	track = utils.checkArgs(query)
+	query_bundle = utils.parse_args(query)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
-	elif track['error'] != '':
-		e_msg = f"**{track['error']}, Please type /help for usage.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+	elif query_bundle['error'] is not None:
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed(f"**{query_bundle['message']}, Please type /help for usage.**"), ephemeral=True)
+		return
+
+	elif query_bundle['platform'] == 'spotify' and config.spotify != True:
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Spotify support is exclueded by Admin. Please type the name of the song.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	else:
@@ -330,32 +230,66 @@ async def play(ctx: discord.Interaction, query: str):
 		else:
 			pass
 
-		if len(bot.queue_status[id]) >= 50:
-			e_msg = "**Queue is full, try after the current song.**"
-			e_msg = common_embed(e_msg)
-			bot.last_messsage[id] = await ctx.followup.send(embed=e_msg)
+		if len(bot.queue_status[id]) >= 100:
+			bot.last_messsage[id] = await ctx.followup.send(embed=common_embed("**Queue is full, try again after few songs.**"))
 			return
 		
 		else:
+			bundle = utils.getTrack(query_bundle)
+			if bundle['bundle_type'] == 'single_track':
+				if bundle['songs'] == []:
+					bot.last_message[id] = await ctx.followup.send(
+						embed=common_embed("**Unable to extract song info. Please try again later.**"))
+					return
+				else:
+					bundle['to_be_added'] = bundle['songs']
+					bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle))
+			
+			if bundle['bundle_type'] == 'playlist_info':
+				if bundle['playlist_data']['playlist_items'] == []:
+					bot.last_message[id] = await ctx.followup.send(
+						embed=common_embed("**Unable to extract songs from the playlist. Please add the songs manually.**"))
+					return
+				else:
+					bundle['to_be_added'] = bundle['playlist_data']['playlist_items']
+					if 100 - len(bot.queue_status[id]) > len(bundle['to_be_added']):
+						avl_length = len(bundle['to_be_added'])
+					else:
+						avl_length = 100 - len(bot.queue_status[id])
+					bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle, avl_length))
+			
+			if bundle['bundle_type'] == 'album_info':
+				if bundle['album_data']['album_items'] == []:
+					bot.last_message[id] = await ctx.followup.send(
+						embed=common_embed("**Unable to extract songs from the album. Please add the songs manually.**"))
+					return
+				else:
+					bundle['to_be_added'] = bundle['album_data']['album_items']
+					if 100 - len(bot.queue_status[id]) > len(bundle['to_be_added']):
+						avl_length = len(bundle['to_be_added'])
+					else:
+						avl_length = 100 - len(bot.queue_status[id])
+					bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle, avl_length))
+				
+
 			if bot.queue_status[id] == [] and bot.is_playing[id] == False and bot.is_paused[id] == False:
-				e_msg = "**Queue Initiated and song added to queue.**"
-				e_msg = common_embed(e_msg)
-				bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+				for track in bundle['to_be_added']:
+					if len(bot.queue_status[id]) <= 100:
+						track['added_by'] = ctx.user
+						bot.queue_status[id].append(track)
+					else:
+						break
 
-				track = utils.getTrack(track['id'])
-				track['added_by'] = ctx.user
-
-				bot.queue_status[id].append(track)
 				bot.is_playing[id] = True 
 				await run_player(play_music, ctx)
 
 			else:
-				track = utils.getTrack(track['id'])
-				track['added_by'] = ctx.user				
-
-				bot.queue_status[id].append(track)
-				e_msg = track_add_embed(ctx, track)
-				bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+				for track in bundle['to_be_added']:
+					if len(bot.queue_status[id]) <= 100:
+						track['added_by'] = ctx.user
+						bot.queue_status[id].append(track)
+					else:
+						break
 				pass
 
 @bot.tree.command(
@@ -366,24 +300,25 @@ async def play(ctx: discord.Interaction, query: str):
 async def fplay(ctx: discord.Interaction, query: str):
 	await ctx.response.defer()
 	id = int(ctx.guild.id)
-	track = utils.checkArgs(query)
+	query_bundle = utils.parse_args(query)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
-	elif track['error'] != '':
-		e_msg = f"**{track['error']}, Please type /help for usage.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+	elif query_bundle['error'] is not None:
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed(f"**{query_bundle['message']}, Please type /help for usage.**"), ephemeral=True)
+		return
+
+	elif query_bundle['platform'] == 'spotify' and config.spotify != True:
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed(
+			"**Spotify support is exclueded by Admin. Please type the name of the song.**"
+			), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	else:
@@ -391,41 +326,65 @@ async def fplay(ctx: discord.Interaction, query: str):
 			bot.vc[id] = await ctx.user.voice.channel.connect()
 		else:
 			pass
-				
+
+		bundle = utils.getTrack(query_bundle)
+		if bundle['bundle_type'] == 'single_track':
+			if bundle['songs'] == []:
+				bot.last_message[id] = await ctx.followup.send(
+					embed=common_embed("**Unable to extract song info. Please try again later.**"))
+				return
+			else:
+				bundle['to_be_added'] = bundle['songs']
+				bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle))
+		
+		if bundle['bundle_type'] == 'playlist_info':
+			if bundle['playlist_data']['playlist_items'] == []:
+				bot.last_message[id] = await ctx.followup.send(
+					embed=common_embed("**Unable to extract songs from the playlist. Please add the songs manually.**"))
+				return
+			else:
+				bundle['to_be_added'] = bundle['playlist_data']['playlist_items']
+				bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle, len(bundle['to_be_added'])))
+		
+		if bundle['bundle_type'] == 'album_info':
+			if bundle['album_data']['album_items'] == []:
+				bot.last_message[id] = await ctx.followup.send(
+					embed=common_embed("**Unable to extract songs from the album. Please add the songs manually.**"))
+				return
+			else:
+				bundle['to_be_added'] = bundle['album_data']['album_items']
+				bot.last_message[id] = await ctx.followup.send(embed=track_add_embed(ctx, bundle, len(bundle['to_be_added'])))
+
+
 		if bot.queue_status[id] == [] and bot.is_playing[id] == False and bot.is_paused[id] == False:
-			e_msg = "**Queue Initiated and song added to queue.**"
-			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+			for track in bundle['to_be_added']:
+				if len(bot.queue_status[id]) <= 100:
+					track['added_by'] = ctx.user
+					bot.queue_status[id].append(track)
+				else:
+					break
 
-			track = utils.getTrack(track['id'])
-			track['added_by'] = ctx.user
-
-			bot.queue_status[id].append(track)
 			bot.is_playing[id] = True 
 			await run_player(play_music, ctx)
 
 		elif bot.is_playing[id] == True and bot.ffmpeg_Process[id] != None:
-
-			e_msg = "**New Queue Initiated and song added to queue.**"
-			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
-
-			track = utils.getTrack(track['id'])
-			track['added_by'] = ctx.user
 			bot.queue_status[id] = []
-			bot.queue_status[id].append(track)
+			for track in bundle['to_be_added']:
+				if len(bot.queue_status[id]) <= 100:
+					track['added_by'] = ctx.user
+					bot.queue_status[id].append(track)
+				else:
+					break
 			utils.kill_process(bot.ffmpeg_Process[id])
 
 		elif bot.is_paused[id] == True and bot.ffmpeg_Process[id] != None:
-
-			e_msg = "**New Queue Initiated and song added to queue.**"
-			e_msg = common_embed(e_msg)
-			bot.last_message[id] = await ctx.followup.send(embed=e_msg)
-
-			track = utils.getTrack(track['id'])
-			track['added_by'] = ctx.user
 			bot.queue_status[id] = []
-			bot.queue_status[id].append(track)
+			for track in bundle['to_be_added']:
+				if len(bot.queue_status[id]) <= 100:
+					track['added_by'] = ctx.user
+					bot.queue_status[id].append(track)
+				else:
+					break
 			bot.is_paused[id] = False
 			bot.is_playing[id] = True
 			bot.vc[id].resume()
@@ -443,21 +402,18 @@ async def skip(ctx: discord.Interaction):
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 	
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
-		e_msg = "**You need to play some music first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to play some music first.**"), ephemeral=True)
 		return
 
 	else:
@@ -488,30 +444,26 @@ async def pause(ctx: discord.Interaction):
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
-		e_msg = "**You need to play some music first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to play some music first.**"), ephemeral=True)
 		return
 
 	else:
 		pass
 
 	if bot.is_paused[id] == True:
-		e_msg = "**Music is already paused.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Music is already paused.**"))
 		return
 
 	elif bot.is_playing[id] == True:
@@ -519,8 +471,7 @@ async def pause(ctx: discord.Interaction):
 		bot.is_paused[id] = True
 		bot.vc[id].pause()
 		trackData = bot.current_song[id]
-		e_msg = pause_embed(ctx, trackData)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=pause_embed(ctx, trackData))
 	
 	else:
 		pass
@@ -534,30 +485,25 @@ async def resume(ctx: discord.Interaction):
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
-		e_msg = "**You need to play some music first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to play some music first.**"), ephemeral=True)
 		return
 
 	else:
 		pass
 
 	if bot.is_playing[id] == True:
-		e_msg = "**Music is already being played.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=common_embed("**Music is already being played.**"))
 		return
 
 	elif bot.is_paused[id] == True:
@@ -565,8 +511,7 @@ async def resume(ctx: discord.Interaction):
 		bot.is_paused[id] = False
 		bot.vc[id].resume()
 		trackData = bot.current_song[id]
-		e_msg = resume_embed(ctx, trackData)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=resume_embed(ctx, trackData))
 	
 	else:
 		pass
@@ -580,37 +525,32 @@ async def leave(ctx: discord.Interaction):
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
-		e_msg = "**You need to play some music first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to play some music first.**"), ephemeral=True)
 		return
 
 	else:
 		pass
 
 	if bot.is_paused[id] == True and bot.ffmpeg_Process[id] != None:
-		e_msg = leave_embed(ctx)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)
+		bot.last_message[id] = await ctx.followup.send(embed=leave_embed(ctx))
 
 		bot.queue_status[id] = []
 		bot.vc[id].resume()
 		utils.kill_process(bot.ffmpeg_Process[id])
 
 	elif bot.is_playing[id] == True and bot.ffmpeg_Process[id] != None:
-		e_msg = leave_embed(ctx)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg)	
+		bot.last_message[id] = await ctx.followup.send(embed=leave_embed(ctx))	
 
 		bot.queue_status[id] = []
 		utils.kill_process(bot.ffmpeg_Process[id])
@@ -627,35 +567,30 @@ async def resume(ctx: discord.Interaction):
 	id = int(ctx.guild.id)
 
 	if ctx.user.voice is None:
-		e_msg = "**You need to join VC first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to join VC first.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] != None and ctx.user.voice.channel != bot.vc[id].channel:
-		e_msg = "**Please join the VC of the Bot.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Please join the VC of the Bot.**"), ephemeral=True)
 		return
 
 	elif bot.vc[id] == None:
-		e_msg = "**You need to play some music first.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**You need to play some music first.**"), ephemeral=True)
 		return
 
 	else:
 		pass
 	
 	if bot.queue_status[id] == []:
-		e_msg = "**Queue is empty, add songs by /play command.**"
-		e_msg = common_embed(e_msg)
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(
+			embed=common_embed("**Queue is empty, add songs by /play command.**"), ephemeral=True)
 		return
 	
 	elif bot.queue_status[id] != []:
-		e_msg = queue_embed(bot.queue_status[id])
-		bot.last_message[id] = await ctx.followup.send(embed=e_msg, ephemeral=True)
+		bot.last_message[id] = await ctx.followup.send(embed=queue_embed(bot.queue_status[id]), ephemeral=True)
 		return
 
 bot.run(config.BOT_TOKEN)

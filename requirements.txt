@@ -3,3 +3,4 @@ discord
 yt-dlp
 librespot
 pyyaml
+ffmpy

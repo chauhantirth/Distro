@@ -3,6 +3,11 @@
 
 A Discord Music Bot which offers various commands to control the music playback while streaming multiple songs to multiple server simultaneously, besides its quite easy to setup. 
 
+## Supported Platforms
+- Spotify : Tracks, Playlists, Albums
+- Youtube Music : Tracks only
+- Youtube : Video only 
+
 ## 🚧 Prerequisites
 
 - [Python 3.10+](https://www.python.org/downloads/)
@@ -23,6 +28,7 @@ Open the `config.py` file and insert required information\
 Run the `main.py` file to start the bot.
 ## ✅ Supported Commands
 
+- `/help`**:** Displays the default Help message for the Bot.
 - `/play {Track name/URL}`**:** Plays the Track / Add to Queue.
 - `/fplay {Track name/URL}`**:** Force Plays the Track
 - `/queue`**:** Displays all the songs in the queue.

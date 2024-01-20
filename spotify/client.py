@@ -133,7 +133,7 @@ class Client():
 
         playlist_data = {
             'title': resp['name'],
-            'url': resp['external_urls']['spotify'],
+            'url': 'https://open.spotify.com/playlist/'+str(playlist_id),
             'id': playlist_id,
             'type': resp['type'],
             'public': resp['public'],

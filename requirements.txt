@@ -1,6 +1,6 @@
 PyNaCl
 discord
 yt-dlp
-librespot
+librespot==0.0.9
 pyyaml
 ffmpy

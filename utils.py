@@ -5,23 +5,27 @@ import json
 import glob
 import signal
 import yt_dlp
+from pathlib import Path
 from urllib import parse, request
 
 from spotify.client import Client
 from spotify.const import CREDENTIAL_LOCATION
 from spotify.const import DOWNLOAD_DIR
 
+CWD = Path.cwd()
 
 class Config():
 	def __init__(self):
 		with open('config.yml', 'r') as file:
 			data = yaml.safe_load(file)
 		self.BOT_TOKEN = data['DISCORD']['BOT_TOKEN']
-		self.DOWNLOAD_DIR = "rds" # No "/" at the end.
+		self.DOWNLOAD_DIR = CWD / DOWNLOAD_DIR
+		self.DOWNLOAD_DIR.mkdir(exist_ok=True)
 		self.spotify = data['DISCORD']['SPOTIFY_SUPPORT']
 		if self.spotify == True:
 			self.spotify_username = data['SPOTIFY']['USERNAME']
 			self.spotify_password = data['SPOTIFY']['PASSWORD']
+			self.credential_location = CWD / CREDENTIAL_LOCATION
 	
 	def setupSpotifyClient(self):
 		try:
@@ -31,7 +35,7 @@ class Config():
 			else:
 				global spClient 
 				spClient = Client()
-				spClient.login(CREDENTIAL_LOCATION, self.spotify_username, self.spotify_password)
+				spClient.login(self.credential_location, self.spotify_username, self.spotify_password)
 		except Exception as e:
 			print(f"Unable to setup spotify client, reason: {e}")
 

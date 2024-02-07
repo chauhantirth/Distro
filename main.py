@@ -6,9 +6,15 @@ import functools
 from discord import app_commands
 from discord.ext import commands
 from asyncio import run_coroutine_threadsafe
+from pathlib import Path
 
 import utils
 from embeds import *
+
+try:
+	discord.opus.load_opus(Path.cwd() / 'libopus.dylib')
+except Exception as e:
+	print(e)
 
 config = utils.Config()
 if config.spotify != True:

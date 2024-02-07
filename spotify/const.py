@@ -27,11 +27,8 @@ EXT_MAP = {
 CREDENTIAL_LOCATION = "spotify/credentials.json"
 
 TRACKS_URL = 'https://api.spotify.com/v1/tracks'
-
 TRACK_STATS_URL = 'https://api.spotify.com/v1/audio-features/'
-
 PLAYLISTS_URL = 'https://api.spotify.com/v1/playlists'
-
 ALBUM_URL = 'https://api.spotify.com/v1/albums'
 
 TRACKNUMBER = 'tracknumber'

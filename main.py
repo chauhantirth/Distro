@@ -11,10 +11,6 @@ from pathlib import Path
 import utils
 from embeds import *
 
-try:
-	discord.opus.load_opus(Path.cwd() / 'libopus.dylib')
-except Exception as e:
-	print(e)
 
 config = utils.Config()
 if config.spotify != True:

@@ -1,7 +1,6 @@
 import os
 import re
 import yaml
-import json
 import glob
 import signal
 import yt_dlp

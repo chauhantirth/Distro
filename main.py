@@ -1,5 +1,3 @@
-import os
-import yaml
 import typing
 import discord
 import functools

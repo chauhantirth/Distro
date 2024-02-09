@@ -250,7 +250,6 @@ def downloadTrack(trackBundle, guild_id, downloadDirectory):
 	YT_DL_OPTIONS = {
 				"format": "bestaudio",
 				"no-playlist": True,
-				# "outtmpl": "rds/"+track_id+"."+id+".%(ext)s",
 	}
 
 	if trackBundle['track_platform'] == 'youtube':
@@ -276,8 +275,6 @@ def downloadTrack(trackBundle, guild_id, downloadDirectory):
 
 
 def deleteTrack(guild_id, downloadDirectory):
-	# for file in os.listdir("./rds"):
-	# 	if file.endswith(f"{id}.webm"):
 	for file in glob.glob(f"{downloadDirectory}/*.{str(guild_id)}.*"):
 		if os.path.exists(file) is True:
 			os.remove(file)

@@ -56,7 +56,6 @@ class Client():
         print(Path(cred_location))
         if Path(cred_location).is_file():
             try:
-                print("upper")
                 conf = Session.Configuration.Builder().set_store_credentials(False).build()
                 self.SESSION = Session.Builder(conf).stored_file(cred_location).create()
                 return 
@@ -65,7 +64,6 @@ class Client():
         else:
             while True:
                 try:
-                    print("lower")
                     conf = Session.Configuration.Builder().set_stored_credential_file(cred_location).build()
                     self.SESSION = Session.Builder(conf).user_pass(username, password).create()
                     return

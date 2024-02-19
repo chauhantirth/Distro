@@ -10,7 +10,7 @@ from librespot.audio.decoders import AudioQuality
 from librespot.audio.decoders import VorbisOnlyAudioQuality
 
 from .const import *
-MAX_RETRIES = 3
+MAX_RETRIES = 2
 
 class Client():
     def __init__(self):

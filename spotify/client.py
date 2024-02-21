@@ -53,7 +53,6 @@ class Client():
 
     def login(self, cred_location, username, password):
         print("Logging into Spotify...")
-        print(Path(cred_location))
         if Path(cred_location).is_file():
             try:
                 conf = Session.Configuration.Builder().set_store_credentials(False).build()

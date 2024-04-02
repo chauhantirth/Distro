@@ -4,6 +4,7 @@
 A Discord Music Bot which offers various commands to control the music playback while streaming multiple songs to multiple server simultaneously, besides its quite easy to setup. 
 
 ## Supported Platforms
+![Supported Platforms](https://imgsaver.com/images/2024/04/01/supported-platforms.png)
 - Spotify : Tracks, Playlists, Albums
 - Youtube Music : Tracks only
 - Youtube : Video only 

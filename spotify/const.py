@@ -24,7 +24,7 @@ EXT_MAP = {
     'vorbis': 'ogg',
 }
 
-CREDENTIAL_LOCATION = "spotify/credentials.json"
+CREDENTIAL_LOCATION = "spotify/credentials/credentials.json"
 
 TRACKS_URL = 'https://api.spotify.com/v1/tracks'
 TRACK_STATS_URL = 'https://api.spotify.com/v1/audio-features/'

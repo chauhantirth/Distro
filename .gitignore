@@ -5,3 +5,4 @@ config.yml
 credentials.json
 libopus.dylib
 .DS_Store
+/spotify/credentials

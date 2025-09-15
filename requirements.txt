@@ -1,6 +1,6 @@
 PyNaCl
 discord
 yt-dlp
-librespot==0.0.9
+git+https://github.com/kokarare1212/librespot-python@main
 pyyaml
 ffmpy

@@ -59,7 +59,7 @@ def search(queryString, platform):
 		htmContent = request.urlopen(
 			'http://www.youtube.com/results?' + searchString)
 		searchResults = re.findall(
-			'/watch\?v=(.{11})', htmContent.read().decode())
+			r'/watch\?v=(.{11})', htmContent.read().decode())
 
 		return {
 			'platform': 'youtube',

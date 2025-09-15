@@ -149,7 +149,7 @@ def play_music(ctx):
 		except:
 			pass
 
-		dl_loc = utils.downloadTrack(bot.current_song[id], str(id), config.DOWNLOAD_DIR)
+		dl_loc = utils.downloadTrack(bot.current_song[id], str(id), config.DOWNLOAD_DIR, config)
 		if dl_loc is None:
 			coro = ctx.channel.send(embed=common_embed("**Skipped the track due to download error.**"))
 			fut = run_coroutine_threadsafe(coro, bot.loop)	
@@ -235,7 +235,7 @@ async def play(ctx: discord.Interaction, query: str):
 			return
 		
 		else:
-			bundle = utils.getTrack(query_bundle)
+			bundle = utils.getTrack(query_bundle, config)
 			if bundle['bundle_type'] == 'single_track':
 				if bundle['songs'] == []:
 					bot.last_message[id] = await ctx.followup.send(
@@ -327,7 +327,7 @@ async def fplay(ctx: discord.Interaction, query: str):
 		else:
 			pass
 
-		bundle = utils.getTrack(query_bundle)
+		bundle = utils.getTrack(query_bundle, config)
 		if bundle['bundle_type'] == 'single_track':
 			if bundle['songs'] == []:
 				bot.last_message[id] = await ctx.followup.send(

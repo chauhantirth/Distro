@@ -21,10 +21,13 @@ class Config():
 		self.DOWNLOAD_DIR = CWD / DOWNLOAD_DIR
 		self.DOWNLOAD_DIR.mkdir(exist_ok=True)
 		self.spotify = data['DISCORD']['SPOTIFY_SUPPORT']
+		self.youtube_need_cookies = data['DISCORD']['NEED_YTDLP_COOKIES']
 		if self.spotify == True:
 			self.spotify_username = data['SPOTIFY']['USERNAME']
 			self.spotify_password = data['SPOTIFY']['PASSWORD']
 			self.credential_location = CWD / CREDENTIAL_LOCATION
+		if self.youtube_need_cookies == True:
+			self.youtube_cookies_browser = data['DISCORD']['YTDLP_COOKIES_BROWSER']
 	
 	def setupSpotifyClient(self):
 		try:
@@ -167,12 +170,14 @@ def parse_args(query):
 
 
 
-def getTrack(track_bundle):
+def getTrack(track_bundle, bot_config: Config):
 
 	YT_EXT_OPTIONS = {
 			"format": "bestaudio",
 			"no-playlist": True,
 	}
+	if bot_config.youtube_need_cookies:
+		YT_EXT_OPTIONS['cookiesfrombrowser'] = (bot_config.youtube_cookies_browser,)
 
 	if track_bundle['platform'] == 'spotify':
 		if track_bundle['type'] == 'single_track':
@@ -242,7 +247,7 @@ def getTrack(track_bundle):
 
 
 
-def downloadTrack(trackBundle, guild_id, downloadDirectory):
+def downloadTrack(trackBundle, guild_id, downloadDirectory, bot_config: Config):
 
 	guild_id = str(guild_id)
 	downloadDirectory = str(downloadDirectory)
@@ -251,6 +256,8 @@ def downloadTrack(trackBundle, guild_id, downloadDirectory):
 				"format": "bestaudio",
 				"no-playlist": True,
 	}
+	if bot_config.youtube_need_cookies:
+		YT_DL_OPTIONS['cookiesfrombrowser'] = (bot_config.youtube_cookies_browser,)
 
 	if trackBundle['track_platform'] == 'youtube':
 		YT_DL_OPTIONS["outtmpl"] = f"{downloadDirectory}/{trackBundle['track_id']}.{guild_id}.%(ext)s"
